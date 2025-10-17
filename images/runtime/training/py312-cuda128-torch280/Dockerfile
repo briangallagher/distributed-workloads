@@ -52,6 +52,15 @@ RUN dnf config-manager \
  && echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf \
  && dnf clean all
 
+# Add build tools for compiling PyTorch extensions
+RUN dnf install -y --disablerepo="*" --enablerepo="ubi-9-appstream-rpms,ubi-9-baseos-rpms" \
+        gcc-c++ \
+        make \
+        cmake \
+        git \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf/*
+
 ENV CUDA_HOME="/usr/local/cuda" \
  PATH="/usr/local/nvidia/bin:${CUDA_HOME}/bin:${PATH}" \
  LD_LIBRARY_PATH="/usr/local/nvidia/lib:/usr/local/nvidia/lib64:$CUDA_HOME/lib64:$CUDA_HOME/extras/CUPTI/lib64:$LD_LIBRARY_PATH"
@@ -88,6 +97,9 @@ RUN pip install \
     nvidia-nvjitlink-cu12==12.8.93 \
     nvidia-nvtx-cu12==12.8.90 \
     && fix-permissions /opt/app-root -P
+
+# Ensure cuDNN from pip is discoverable during source builds
+ENV LD_LIBRARY_PATH="/opt/app-root/lib/python3.12/site-packages/nvidia/cudnn/lib:${LD_LIBRARY_PATH}"
 # Install Python packages
 
 # Install micropipenv to deploy packages from Pipfile.lock
@@ -100,6 +112,17 @@ RUN micropipenv install -- --no-cache-dir && \
     rm -f ./Pipfile.lock && \
     # Fix permissions to support pip in OpenShift environments \
     chmod -R g+w /opt/app-root/lib/python3.12/site-packages && \
+    fix-permissions /opt/app-root -P
+
+# Build helpers to compile PyTorch extensions
+RUN pip install -U pip setuptools wheel ninja cmake
+
+# Optional: set GPU archs if you hit arch issues
+ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"
+
+# Deterministic 2-step: sub-dep first, then parent without deps
+RUN pip install --no-build-isolation --no-cache-dir causal-conv1d==1.5.3.post1 && \
+    pip install --no-build-isolation --no-cache-dir mamba-ssm==2.2.6.post3 --no-deps && \
     fix-permissions /opt/app-root -P
 
 # Restore user workspace

@@ -198,13 +198,7 @@
             "markers": "python_version >= '3.9'",
             "version": "==0.48.1"
         },
-        "causal-conv1d": {
-            "hashes": [
-                "sha256:aba1b717484472d0b2f2e40520a1c03f35fe5155555bd753d1c324afc56ba468"
-            ],
-            "markers": "python_version >= '3.9'",
-            "version": "==1.5.3.post1"
-        },
+        
         "certifi": {
             "hashes": [
                 "sha256:0f212c2744a9bb6de0c56639a6f68afe01ecd92d91f14ae897c4fe7bbeeef0de",
@@ -718,16 +712,7 @@
             "markers": "python_version >= '3.10'",
             "version": "==0.45.1"
         },
-        "mamba-ssm": {
-            "extras": [
-                "causal-conv1d"
-            ],
-            "hashes": [
-                "sha256:826a3cdb651959f191dac64502f8a29627d9116fe6bb7c57e4f562da1aea7bf3"
-            ],
-            "markers": "python_version >= '3.9'",
-            "version": "==2.2.6.post3"
-        },
+        
         "markdown": {
             "hashes": [
                 "sha256:9f4d91ed810864ea88a6f32c07ba8bee1346c0cc1f6b1f9f6c822f2a9667d280",
