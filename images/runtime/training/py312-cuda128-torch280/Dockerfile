@@ -71,20 +71,6 @@ RUN dnf install -y --disablerepo="*" --enablerepo="cuda-rhel9-x86_64,mlnx_ofed_2
     && dnf clean all \
     && rm -rf /var/cache/dnf/*
 
-# Install Python packages
-
-# Install micropipenv to deploy packages from Pipfile.lock
-RUN pip install --no-cache-dir -U "micropipenv[toml]"
-
-# Install Python dependencies from Pipfile.lock file
-COPY Pipfile.lock ./
-
-RUN micropipenv install -- --no-cache-dir && \
-    rm -f ./Pipfile.lock && \
-    # Fix permissions to support pip in OpenShift environments \
-    chmod -R g+w /opt/app-root/lib/python3.12/site-packages && \
-    fix-permissions /opt/app-root -P
-
 # Upgrade NCCL to a more recent version and add Training Hub NVIDIA dependencies
 RUN pip install \
     nvidia-nccl-cu12==2.27.3 \
@@ -101,7 +87,20 @@ RUN pip install \
     nvidia-cusparselt-cu12==0.7.1 \
     nvidia-nvjitlink-cu12==12.8.93 \
     nvidia-nvtx-cu12==12.8.90 \
- && fix-permissions /opt/app-root -P
+    && fix-permissions /opt/app-root -P
+# Install Python packages
+
+# Install micropipenv to deploy packages from Pipfile.lock
+RUN pip install --no-cache-dir -U "micropipenv[toml]"
+
+# Install Python dependencies from Pipfile.lock file
+COPY Pipfile.lock ./
+
+RUN micropipenv install -- --no-cache-dir && \
+    rm -f ./Pipfile.lock && \
+    # Fix permissions to support pip in OpenShift environments \
+    chmod -R g+w /opt/app-root/lib/python3.12/site-packages && \
+    fix-permissions /opt/app-root -P
 
 # Restore user workspace
 USER 1001
