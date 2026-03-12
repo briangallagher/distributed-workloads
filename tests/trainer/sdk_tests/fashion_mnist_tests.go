@@ -19,6 +19,7 @@ package sdk_tests
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
@@ -40,6 +41,19 @@ const (
 	installScriptPath     = "resources/disconnected_env/install_kubeflow.py"
 	installKubeflowScript = "install_kubeflow.py"
 )
+
+func kubeflowGitInstallExports() string {
+	var exports strings.Builder
+
+	if installFromGit, ok := os.LookupEnv("KUBEFLOW_INSTALL_FROM_GIT"); ok && installFromGit != "" {
+		fmt.Fprintf(&exports, "export KUBEFLOW_INSTALL_FROM_GIT=%q; ", installFromGit)
+	}
+	if gitURL, ok := os.LookupEnv("KUBEFLOW_GIT_URL"); ok && gitURL != "" {
+		fmt.Fprintf(&exports, "export KUBEFLOW_GIT_URL=%q; ", gitURL)
+	}
+
+	return exports.String()
+}
 
 // CPU Only - Distributed Training
 func RunFashionMnistCpuDistributedTraining(t *testing.T) {
@@ -101,6 +115,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 			"export AWS_STORAGE_BUCKET_MNIST_DIR='%s'; "+
 			"export TRAINING_RUNTIME='%s'; "+
 			"export GPU_TYPE='cpu'; "+
+			"%s"+
 			"python -m pip install --quiet --no-cache-dir ipykernel papermill boto3==1.34.162 && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
@@ -108,6 +123,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
 		endpoint, accessKey, secretKey, bucket, prefix,
 		trainerutils.DefaultClusterTrainingRuntime,
+		kubeflowGitInstallExports(),
 		installKubeflowScript,
 		notebookName,
 	)
@@ -229,6 +245,7 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 			"export TRAINING_RUNTIME='%s'; "+
 			"export GPU_TYPE='cpu'; "+
 			"export KUEUE_QUEUE_NAME='%s'; "+
+			"%s"+
 			"python -m pip install --quiet --no-cache-dir ipykernel papermill boto3==1.34.162 && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
@@ -237,6 +254,7 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 		endpoint, accessKey, secretKey, bucket, prefix,
 		trainerutils.DefaultClusterTrainingRuntime,
 		customLocalQueue.Name,
+		kubeflowGitInstallExports(),
 		installKubeflowScript,
 		notebookName,
 	)

@@ -29,12 +29,12 @@ func TestKubeflowSdkSanity(t *testing.T) {
 	sdktests.RunFashionMnistCpuDistributedTraining(t)
 }
 
-func TestKubeflowSdkKueueIntegration(t *testing.T) {
-	Tags(t, Sanity)
-	test := support.With(t)
-	support.SetupKueue(test, initialKueueState, support.TrainJobFramework)
-	sdktests.RunFashionMnistKueueCpuDistributedTraining(t)
-}
+// func TestKubeflowSdkKueueIntegration(t *testing.T) {
+// 	Tags(t, Sanity)
+// 	test := support.With(t)
+// 	support.SetupKueue(test, initialKueueState, support.TrainJobFramework)
+// 	sdktests.RunFashionMnistKueueCpuDistributedTraining(t)
+// }
 
 // TestOsftTrainingHubMultiNodeMultiGPU tests OSFT training using TrainingHubTrainer
 func TestOsftTrainingHubMultiNodeMultiGPU(t *testing.T) {

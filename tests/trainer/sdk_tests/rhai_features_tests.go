@@ -557,10 +557,15 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		// The annotation is operator-generated and may not reach exactly 100% due to polling timing,
 		// but it provides additional metadata (steps, epochs, etc.) that we verify.
 		test.T().Log("Verifying trainerStatus annotation metadata...")
-		trainJob := TrainJob(test, namespace.Name, trainJobName)(test)
-		annotations = trainJob.GetAnnotations()
-		trainerStatusRaw := annotations[annotationTrainerStatus]
-		test.Expect(trainerStatusRaw).NotTo(BeEmpty(), "trainerStatus annotation should not be empty")
+		var trainerStatusRaw string
+		test.Eventually(func() string {
+			trainJob := TrainJob(test, namespace.Name, trainJobName)(test)
+			return trainJob.GetAnnotations()[annotationTrainerStatus]
+		}, TestTimeoutShort, 5*time.Second).ShouldNot(
+			BeEmpty(),
+			"trainerStatus annotation should not be empty",
+		)
+		trainerStatusRaw = TrainJob(test, namespace.Name, trainJobName)(test).GetAnnotations()[annotationTrainerStatus]
 
 		var trainerStatus map[string]interface{}
 		err := json.Unmarshal([]byte(trainerStatusRaw), &trainerStatus)

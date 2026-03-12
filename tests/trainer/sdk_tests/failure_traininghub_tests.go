@@ -51,7 +51,7 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 
 	// RBACs setup
 	userName := common.GetNotebookUserName(test)
-	userToken := common.GenerateNotebookUserToken(test)
+	userToken := common.GetNotebookUserToken(test)
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
@@ -80,8 +80,13 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
+<<<<<<< HEAD
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name,
 		trainerutils.DefaultTrainingHubRuntime,
+=======
+		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
+		"training-hub-pr-test",
+>>>>>>> 4d819cd (updates)
 		failureNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
@@ -118,7 +123,7 @@ func RunTorchrunTrainingFailureTest(t *testing.T) {
 
 	// RBACs setup
 	userName := common.GetNotebookUserName(test)
-	userToken := common.GenerateNotebookUserToken(test)
+	userToken := common.GetNotebookUserToken(test)
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
@@ -167,7 +172,7 @@ func RunTorchrunTrainingFailureTest(t *testing.T) {
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
 		endpoint, accessKey, secretKey, bucket, prefix,
-		trainerutils.DefaultTrainingHubRuntime,
+		"training-hub-pr-test",
 		torchrunFailureNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}

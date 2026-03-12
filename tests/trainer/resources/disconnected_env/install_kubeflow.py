@@ -23,6 +23,8 @@ S3 fallback env vars:
 import subprocess
 import sys
 import os
+import pathlib
+import site
 import warnings
 
 # Suppress SSL warnings for self-signed certs in disconnected environments
@@ -32,6 +34,74 @@ try:
 except ImportError:
     pass
 warnings.filterwarnings("ignore", message=".*InsecureRequestWarning.*")
+
+KUBEFLOW_DEPENDENCIES = [
+    "pydantic>=2.10.0",
+    "kubernetes>=27.2.0",
+    "kubeflow-trainer-api>=2.0.0",
+    "kubeflow-katib-api>=0.19.0",
+]
+
+
+def print_subprocess_output(label: str, result: subprocess.CompletedProcess):
+    """Print captured subprocess output when available."""
+    stdout = (result.stdout or "").strip()
+    stderr = (result.stderr or "").strip()
+    if stdout:
+        print(f"{label} stdout:\n{stdout}")
+    if stderr:
+        print(f"{label} stderr:\n{stderr}")
+
+
+def log_runtime_diagnostics():
+    """Log the Python/pip/git tools used by the notebook container."""
+    print(f"Python executable: {sys.executable}")
+
+    pip_result = subprocess.run(
+        [sys.executable, "-m", "pip", "--version"],
+        capture_output=True,
+        text=True,
+    )
+    if pip_result.returncode == 0:
+        print(f"pip version: {pip_result.stdout.strip()}")
+    else:
+        print("Unable to determine pip version")
+        print_subprocess_output("pip --version", pip_result)
+
+    git_result = subprocess.run(
+        ["git", "--version"],
+        capture_output=True,
+        text=True,
+    )
+    if git_result.returncode == 0:
+        print(f"git version: {git_result.stdout.strip()}")
+    else:
+        print("git is unavailable in the notebook container")
+        print_subprocess_output("git --version", git_result)
+
+
+def log_installed_kubeflow_details():
+    """Log the installed kubeflow module path and direct URL metadata when present."""
+    try:
+        import kubeflow
+
+        print(f"Installed kubeflow module: {kubeflow.__file__}")
+        print(f"Installed kubeflow version: {getattr(kubeflow, '__version__', 'unknown')}")
+    except Exception as exc:
+        print(f"Unable to inspect installed kubeflow module: {exc}")
+        return
+
+    seen = set()
+    for base in list(site.getsitepackages()) + [site.getusersitepackages()]:
+        if not base or base in seen:
+            continue
+        seen.add(base)
+        dist_info_dir = pathlib.Path(base)
+        if not dist_info_dir.exists():
+            continue
+        for metadata_file in dist_info_dir.glob("kubeflow-*.dist-info/direct_url.json"):
+            print(f"kubeflow direct_url metadata: {metadata_file}")
+            print(metadata_file.read_text())
 
 
 def get_required_version():
@@ -87,9 +157,7 @@ def install_from_pypi():
     print("Installing kubeflow dependencies from public PyPI...")
     deps_cmd = [
         sys.executable, "-m", "pip", "install", "--quiet",
-        "pydantic>=2.10.0", "kubernetes>=27.2.0", 
-        "kubeflow-trainer-api>=2.0.0", "kubeflow-katib-api>=0.19.0"
-    ]
+    ] + KUBEFLOW_DEPENDENCIES
     deps_result = subprocess.run(deps_cmd, capture_output=True, text=True)
     if deps_result.returncode != 0:
         print(f"Failed to install dependencies: {deps_result.stderr}")
@@ -189,15 +257,35 @@ def install_from_git():
         "KUBEFLOW_GIT_URL",
         "kubeflow @ git+https://github.com/opendatahub-io/kubeflow-sdk.git"
     )
+    git_env = os.environ.copy()
+    git_env["GIT_CONFIG_GLOBAL"] = os.devnull
+    git_env["GIT_CONFIG_SYSTEM"] = os.devnull
+    git_env["GIT_TERMINAL_PROMPT"] = "0"
+
+    log_runtime_diagnostics()
     print(f"Installing kubeflow from git: {git_url}")
+    deps_cmd = [
+        sys.executable, "-m", "pip", "install", "--quiet",
+    ] + KUBEFLOW_DEPENDENCIES
+    deps_result = subprocess.run(deps_cmd, capture_output=True, text=True, env=git_env)
+    if deps_result.returncode != 0:
+        print("Git install dependency setup failed")
+        print_subprocess_output("git install dependencies", deps_result)
+        return False
+
     cmd = [
-        sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir", git_url
+        sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir",
+        "--force-reinstall", "--no-deps",
+        git_url,
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, env=git_env)
     if result.returncode == 0:
         print("Successfully installed kubeflow from git")
+        print_subprocess_output("git install", result)
+        log_installed_kubeflow_details()
         return True
-    print(f"Git install failed: {result.stderr}")
+    print("Git install failed")
+    print_subprocess_output("git install", result)
     return False
 
 
