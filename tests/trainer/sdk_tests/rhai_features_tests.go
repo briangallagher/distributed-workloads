@@ -585,6 +585,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		test.Expect(trainerStatus).To(HaveKey("totalEpochs"))
 		test.T().Logf("currentEpoch: %v/%v", trainerStatus["currentEpoch"], trainerStatus["totalEpochs"])
 
+		
 		test.Expect(trainerStatus).To(HaveKey("estimatedRemainingSeconds"))
 		remaining := trainerStatus["estimatedRemainingSeconds"].(float64)
 		test.Expect(remaining).To(BeNumerically("==", 0), "Remaining time should be 0 at completion")
